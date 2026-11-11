@@ -1,4 +1,4 @@
-using System.Drawing.Drawing2D;
+﻿using System.Drawing.Drawing2D;
 
 namespace CoffeeViewer;
 
@@ -34,10 +34,11 @@ public partial class MainForm
         editorHost.Controls.Add(goalWidget);
         goalWidget.SettingsRequested += OpenGoalSettings;
         goalWidget.CloseRequested += () => { goalShown = false; settings.WriterGoalWidget = false; settings.Save(); SyncGoalWidget(); };
-        goalShown = settings.WriterGoalWidget; // 에피소드를 열면 위젯이 자동으로 켜진다(마지막에 닫아 두었다면 꺼진 채로)
+        goalShown = true; // 에피소드를 열면 글자 수 위젯은 늘 켜진 채로 시작한다(이전에 닫아 두었어도)
         goalWidget.Moved += () => { goalMoved = true; goalPos = goalWidget.Location; };
         goalWidget.ExpandedChanged += () => { goalMoved = true; ResizeGoalWidget(); };
-        editorHost.SizeChanged += (_, _) => { if (goalWidget.Visible) PlaceGoalWidget(); };
+        editorHost.SizeChanged += (_, _) => { if (goalWidget.Visible) PlaceGoalWidget(); else if (goalShown) SyncGoalWidget(); };
+        editorHost.VisibleChanged += (_, _) => { if (goalShown) SyncGoalWidget(); }; // 글 칸이 나타날 때 켜져 있어야 할 위젯이 빠지지 않게 다시 맞춘다
         FormClosed += (_, _) => { goalWidget.Parent?.Controls.Remove(goalWidget); };
         writerTitle.TypeChosen += OnEpisodeTypeChosen;
         writerTitle.StatusChosen += OnEpisodeStatusChosen;
@@ -170,11 +171,12 @@ public partial class MainForm
     private Point goalPos;     // 옮겨 놓은 자리(창 좌표). 위젯이 숨겨졌다 돌아올 때 이 값으로 되돌린다
     /// <summary>사이드바의 글자 수 세기 아이콘: 위젯을 켜고 끈다.</summary>
     internal void ToggleCountWidget() => ToggleGoalWidget();
+    internal bool GoalWidgetOn => goalWidget is { Visible: true };
 
     private void SyncGoalWidget()
     {
         if (goalWidget == null) return;
-        bool show = WriterLayout && goalShown;
+        bool show = embedded && directEdit && shownKind == ContentKind.Txt && editorHost.Visible && goalShown; // 편집 용지를 켠 글에서도 글자 수 위젯은 뜬다
         if (goalWidget.Visible != show) { goalWidget.Visible = show; if (show) { PlaceGoalWidget(); goalWidget.BringToFront(); } }
         if (show) { goalWidget.SetColors(mainEditor.BackColor, mainEditor.ForeColor, theme.Link); UpdateGoalWidget(charsAll, charsSolid); }
     }

@@ -31,10 +31,25 @@ internal sealed class NovelWorkspace : Panel
 
     // ───────── 뽀모도로 타이머 위젯 ─────────
     private PomodoroWidget? pomo;
+    private readonly System.Windows.Forms.Timer markTimer = new() { Interval = 300 };
+
+    /// <summary>떠 있는 위젯(타이머 · 글자 수 세기)의 사이드바 아이콘을 눌린 모양으로 맞춘다.</summary>
+    private void SyncWidgetMarks()
+    {
+        rail.SetActive("timer", pomo is { Visible: true });
+        rail.SetActive("count", focused.CountWidgetOn);
+    }
     protected override void OnVisibleChanged(EventArgs e) { base.OnVisibleChanged(e); if (IsHandleCreated) BeginInvoke(SyncPomodoro); }
-    protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); BeginInvoke(SyncPomodoro); }
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        BeginInvoke(SyncPomodoro);
+        markTimer.Tick -= MarkTick; markTimer.Tick += MarkTick; markTimer.Start();
+    }
+    private void MarkTick(object? s, EventArgs e) { if (!IsDisposed) SyncWidgetMarks(); }
     protected override void Dispose(bool disposing)
     {
+        if (disposing) markTimer.Dispose();
         if (disposing && pomo != null) { pomo.Parent?.Controls.Remove(pomo); pomo.Dispose(); pomo = null; }
         base.Dispose(disposing);
     }
@@ -53,7 +68,17 @@ internal sealed class NovelWorkspace : Panel
         var host = TopLevelControl;
         bool onMain = inner.Panel2Collapsed && left.DocPath == null; // 소설 메인에서는 위젯을 숨긴다(문서에 들어가면 다시 나타남)
         bool show = Pomodoro.S.WidgetShown && Visible && !onMain && host != null && host.IsHandleCreated;
-        if (!show) { if (pomo != null) pomo.Visible = false; return; }
+        if (!show)
+        {
+            // 에피소드(문서)에서 나가면 타이머도 끝낸다: 도는 중이던 시간과 소리가 멈추고 처음으로 돌아간다
+            if (pomo is { Visible: true })
+            {
+                if (Pomodoro.State != PomoState.Idle) Pomodoro.Reset();
+                Pomodoro.S.WidgetShown = false; // 다시 들어와도 저절로 뜨지 않는다(아이콘을 눌러야 켜진다)
+            }
+            if (pomo != null) pomo.Visible = false;
+            return;
+        }
         Pomodoro.Init();
         var pal = palette ?? LibraryPalette.From(AppShared.LibraryTheme);
         if (pomo == null)
@@ -69,6 +94,7 @@ internal sealed class NovelWorkspace : Panel
         PlacePomodoro();
         pomo.Visible = true;
         pomo.BringToFront();
+        SyncWidgetMarks();
     }
 
     private void PlacePomodoro()
@@ -496,6 +522,7 @@ internal sealed class NovelWorkspace : Panel
     private void SyncRail()
     {
         rail.Selected = outer.Panel1Collapsed ? null : memoShown ? "memo" : Tree.ShowingFiles ? "files" : "tree";
+        SyncWidgetMarks();
     }
 
     /// <summary>왼쪽 칸에 메모 목록(true) 또는 파일 트리(false)를 보인다.</summary>
@@ -623,6 +650,9 @@ internal sealed class WorkspaceRail : Control
         Invalidate();
     }
 
+    private readonly HashSet<string> active = new();
+    /// <summary>눌러 둔 채로 켜져 있는 항목(떠 있는 위젯: 타이머 · 글자 수 세기)을 눌린 모양으로 보인다.</summary>
+    public void SetActive(string key, bool on) { if (on ? active.Add(key) : active.Remove(key)) Invalidate(); }
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public string? Selected { get => selected; set { if (selected == value) return; selected = value; Invalidate(); } }
 
@@ -698,7 +728,7 @@ internal sealed class WorkspaceRail : Control
             var r = ItemRect(i);
             if (IsSep(i)) { using var sp = new Pen(p.Line); g.DrawLine(sp, r.Left + S(6), r.Top + r.Height / 2, r.Right - S(6), r.Top + r.Height / 2); continue; }
             if (IsBlank(i)) continue;
-            bool sel = items[i].Key == selected;
+            bool sel = items[i].Key == selected || active.Contains(items[i].Key);
             if (sel || i == hover)
             {
                 using var path = LibraryPalette.Rounded(r, S(8));
@@ -848,6 +878,8 @@ internal sealed class DocPane : PaneFrame
     public string? DocPath { get; private set; }
     /// <summary>이 칸에 열린 에피소드의 글자 수 세기 위젯을 켜고 끈다(에피소드가 아니면 아무 일도 없다).</summary>
     public void ToggleCountWidget() => doc?.ToggleCountWidget();
+    /// <summary>글자 수 세기 위젯이 지금 떠 있는가.</summary>
+    public bool CountWidgetOn => doc?.GoalWidgetOn ?? false;
     public event Action<DocPane>? FocusRequested;
     public event Action<DocPane>? CloseRequested;
     public event Action? ContentChanged;

@@ -16,6 +16,20 @@ internal static class Updater
 
     private static bool busy;
 
+    /// <summary>업데이트로 내려받아 임시 폴더에 남은 옛 설치 파일(지금 버전 이하)을 지운다. 프로그램을 켤 때 한 번 부른다.</summary>
+    public static void CleanupOldInstallers()
+    {
+        try
+        {
+            foreach (var f in Directory.GetFiles(Path.GetTempPath(), "CafeumOffice-Setup-*.exe"))
+            {
+                string v = Path.GetFileNameWithoutExtension(f)["CafeumOffice-Setup-".Length..];
+                if (Version.TryParse(v, out var ver) && ver <= Current) File.Delete(f);
+            }
+        }
+        catch { }
+    }
+
     public static Version Current => Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(1, 0, 0);
 
     private static readonly HttpClient http = CreateClient();

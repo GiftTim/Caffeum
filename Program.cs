@@ -28,6 +28,7 @@ static class Program
         string? initialPath = args.Length > 0 ? args[0] : null;
         var context = AppShared.Start(initialPath, args.Skip(1).ToArray());
         StartListener();
+        Updater.CleanupOldInstallers();
         Application.Run(context);
     }
 

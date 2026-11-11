@@ -41,7 +41,7 @@ internal sealed class PomoSettings
     public double Volume { get; set; } = 1;
     public List<PomoTodo> Todos { get; set; } = new();
     public int CurrentMode { get; set; }
-    public bool WidgetShown { get; set; }
+    [JsonIgnore] public bool WidgetShown { get; set; } // 저장하지 않는다: 프로그램을 켜거나 에피소드에 들어갈 때 자동으로 뜨지 않고, 사이드바 아이콘으로만 켠다
     public bool Mini { get; set; } public bool Locked { get; set; }
     public int PosX { get; set; } = -1;
     public int PosY { get; set; } = -1;
