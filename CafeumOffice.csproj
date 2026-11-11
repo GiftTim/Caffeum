@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CafeumOffice</AssemblyName>
+    <RootNamespace>CoffeeViewer</RootNamespace>
+    <AssemblyTitle>Caffeum</AssemblyTitle>
+    <Product>Caffeum</Product>
+    <Company>JuneSilver</Company>
+    <Version>1.0.2</Version>
+    <ApplicationIcon>Img\CaffeumTaskbar.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- 배포(CafeumOffice.iss, 아직 없음)는 publish 폴더의 exe 하나만 그대로 담아간다. 아래 설정을 빠뜨리고
+       그냥 "dotnet publish -c Release"만 돌리면 WebView2Loader.dll·libSkiaSharp.dll 같은 네이티브
+       의존 파일들이 exe에 안 묶이고 옆에 낱개로 남는데, 인스톨러는 그걸 안 챙겨가므로 설치본에서
+       "DLL was not found"로 깨진다(실제로 한 번 이렇게 겪었다) — 그래서 커맨드 옵션이 아니라
+       여기 프로젝트 설정으로 고정해둔다. -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Img/Caffeum.ico" LogicalName="Caffeum.ico" />
+    <EmbeddedResource Include="Img/CaffeumTaskbar.ico" LogicalName="CaffeumTaskbar.ico" />
+    <EmbeddedResource Include="Img/OnePage.png" LogicalName="OnePage.png" />
+    <EmbeddedResource Include="Img/TwoPage.png" LogicalName="TwoPage.png" />
+    <EmbeddedResource Include="Img/Full Screen Key.png" LogicalName="FullScreenKey.png" />
+    <EmbeddedResource Include="Img/Exit Full Screen Key.png" LogicalName="ExitFullScreenKey.png" />
+    <EmbeddedResource Include="Img/Unpin from top.png" LogicalName="UnpinFromTop.png" />
+    <EmbeddedResource Include="Img/Pin on Top.png" LogicalName="PinOnTop.png" />
+    <EmbeddedResource Include="Img/원본 크기로 보기.png" LogicalName="ViewActual.png" />
+    <EmbeddedResource Include="Img/꽉차게 보기.png" LogicalName="ViewFit.png" />
+    <EmbeddedResource Include="Img/꽉차게 보기(폭 맞춤).png" LogicalName="ViewFitWidth.png" />
+    <EmbeddedResource Include="Img/작은 그림도 꽉차게 보기.png" LogicalName="ViewFitUpscale.png" />
+    <EmbeddedResource Include="Img\refresh.png" LogicalName="refresh.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    <!-- GDI+(System.Drawing)는 webp를 못 읽어서, webp 디코딩만 SkiaSharp에 맡긴다. -->
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <PackageReference Include="System.Speech" Version="9.0.20" />
+  </ItemGroup>
+
+
+</Project>
