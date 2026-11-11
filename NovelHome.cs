@@ -29,6 +29,10 @@ internal sealed class NovelHome : Panel
     public event Action? ChangeVaultRequested;
     public event Action? SettingsRequested;
     public event Action? HelpRequested;
+    /// <summary>오른쪽 위의 전체 화면 버튼.</summary>
+    public event Action? FullScreenRequested;
+    private readonly FullScreenButton fullButton = new();
+    public void SetFullScreenIcon(bool on) => fullButton.On = on;
 
     // Muvel처럼 왼쪽 옆 막대: 맨 위 로고(접기 버튼) · 메뉴 · 맨 아래 볼트 이름
     private readonly Panel nav;
@@ -64,7 +68,8 @@ internal sealed class NovelHome : Panel
         vaultButton.Click += (_, _) => System.Diagnostics.Process.Start("explorer.exe", $"\"{vaultPath}\"");
 
         top = new HomeHeader { Dock = DockStyle.Top };
-        top.Controls.AddRange(new Control[] { titleLabel, countLabel, subLabel, searchBox, newButton, vaultButton });
+        top.Controls.AddRange(new Control[] { titleLabel, countLabel, subLabel, searchBox, newButton, vaultButton, fullButton });
+        fullButton.Click += (_, _) => FullScreenRequested?.Invoke();
         top.Layout += (_, _) => LayoutTop();
 
         flow = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, WrapContents = true, FlowDirection = FlowDirection.LeftToRight };
@@ -137,6 +142,7 @@ internal sealed class NovelHome : Panel
     private void LayoutTop()
     {
         int cx = top.ClientSize.Width / 2;
+        fullButton.SetBounds(top.ClientSize.Width - S(24) - S(40), S(14), S(40), S(40)); // 오른쪽 위 구석
         int y = S(48);
         int tw = titleLabel.Width + S(10) + countLabel.Width;
         titleLabel.Location = new Point(cx - tw / 2, y);
@@ -203,6 +209,7 @@ internal sealed class NovelHome : Panel
         brand.SetPalette(p);
         foreach (var i in new[] { libraryItem, vaultItem, settingsItem, helpItem, updateItem }) i.SetPalette(p);
         top.SetPalette(p);
+        fullButton.SetPalette(p);
         titleLabel.BackColor = countLabel.BackColor = subLabel.BackColor = Color.Transparent; // 창 테마 적용이 칠해 둔 바탕을 걷어 낸다(그라데이션이 비치게)
         titleLabel.ForeColor = p.Fore;
         countLabel.ForeColor = subLabel.ForeColor = emptyLabel.ForeColor = p.Dim;

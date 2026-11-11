@@ -1600,6 +1600,9 @@ internal sealed class NovelOverview : Panel
     private readonly CoverBox coverBox;
     private readonly PillButton newButton, folderButton, deleteButton, episodesTab, wikiTab, memoTab, refTab;
     private readonly IconButton reorderButton;
+    private readonly GlyphIconButton settingsButton; // 제목 오른쪽의 환경설정(톱니바퀴)
+    /// <summary>제목 오른쪽의 환경설정 버튼.</summary>
+    public event Action? SettingsRequested;
     private readonly SearchField search;
     private readonly TextBox memoBox;
     private readonly System.Windows.Forms.Timer searchTimer = new() { Interval = 250 };
@@ -1634,6 +1637,8 @@ internal sealed class NovelOverview : Panel
         descLabel.Click += (_, _) => OpenInfo();
         titleLabel.Click += (_, _) => OpenInfo();
         titleLabel.Cursor = Cursors.Hand;
+        settingsButton = new GlyphIconButton("", "환경설정 (Ctrl+,)");
+        settingsButton.Click += (_, _) => SettingsRequested?.Invoke();
         coverBox = new CoverBox();
         coverBox.Clicked += OpenInfo;
         tagStrip = new TagStrip();
@@ -1686,7 +1691,7 @@ internal sealed class NovelOverview : Panel
         head = new Panel();
         pageScroll = new VScrollBar { Dock = DockStyle.Right, Visible = false };
         pageScroll.ValueChanged += (_, _) => { newMenu?.Close(); pageOffset = pageScroll.Value; LayoutPage(); }; // 쪽을 내리면 떠 있는 [새 편 쓰기] 목록은 닫는다(화면에 혼자 남아 떠다니지 않게)
-        head.Controls.AddRange(new Control[] { coverBox, metaLabel, titleLabel, descLabel, tagStrip, newButton, folderButton, deleteButton, reorderButton, episodesTab, wikiTab, memoTab, refTab, search });
+        head.Controls.AddRange(new Control[] { coverBox, settingsButton, metaLabel, titleLabel, descLabel, tagStrip, newButton, folderButton, deleteButton, reorderButton, episodesTab, wikiTab, memoTab, refTab, search });
         head.Layout += (_, _) => LayoutHead();
 
         list = new EpisodeList { OnMain = true, Compact = true, Font = new Font(ff, 11f) }; // 간단히 보기(줄 간격 좁게)로 고정
@@ -1731,7 +1736,10 @@ internal sealed class NovelOverview : Panel
         int th = tagStrip.FitHeight(tw); // 태그(없으면 [새 태그 추가 +]만) 줄
         int bh = Math.Max(folderButton.Height, S(32));
         int y = top + S(26);
-        titleLabel.SetBounds(tx - S(3), y, tw, titleH);
+        // 환경설정(톱니바퀴): 제목 줄의 오른쪽 끝, 소개 상자의 오른쪽 끝에 맞춘다
+        int gs = S(36);
+        settingsButton.SetBounds(tx + boxW - gs, y + (titleH - gs) / 2, gs, gs);
+        titleLabel.SetBounds(tx - S(3), y, Math.Max(S(80), boxW - gs - S(8)), titleH);
         y = titleLabel.Bottom + S(2);
         metaLabel.Location = new Point(tx, y);
         y = metaLabel.Bottom + S(12);
@@ -1852,7 +1860,8 @@ internal sealed class NovelOverview : Panel
         foreach (var b in new[] { newButton, folderButton, deleteButton, episodesTab, wikiTab, memoTab, refTab }) b.SetPalette(p);
         deleteButton.TextColor = p.Dark ? Color.FromArgb(0xFF, 0x6B, 0x6B) : Color.FromArgb(0xE0, 0x2B, 0x2B);
         reorderButton.SetPalette(p);
-        search.SetPalette(p);
+        settingsButton.SetPalette(p);
+search.SetPalette(p);
         tagStrip.SetPalette(p);
         coverBox.SetPalette(p);
         list.SetPalette(p);

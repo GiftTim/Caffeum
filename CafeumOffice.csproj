@@ -11,7 +11,7 @@
     <AssemblyTitle>Caffeum</AssemblyTitle>
     <Product>Caffeum</Product>
     <Company>JuneSilver</Company>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <ApplicationIcon>Img\CaffeumTaskbar.ico</ApplicationIcon>
   </PropertyGroup>
 

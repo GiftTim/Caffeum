@@ -116,6 +116,7 @@ internal sealed class NovelWorkspace : Panel
     public event Action? HomeRequested;
     public event Action? HelpRequested;
     public event Action? SettingsRequested;
+    internal void RaiseSettings() => SettingsRequested?.Invoke();
     public event Action? FullScreenRequested;
     public event Action? PinRequested;
     public event Action? SearchRequested;
@@ -1168,6 +1169,7 @@ internal sealed class DocPane : PaneFrame
         if (overview == null)
         {
             overview = new NovelOverview(owner.Tree) { Dock = DockStyle.Fill };
+            overview.SettingsRequested += () => owner.RaiseSettings();
             overview.OpenRequested += p => owner.Open(p, split: false);
             overview.WikiOpenRequested += p => owner.Open(p, split: false);
             overview.RefOpenRequested += p => owner.Open(p, split: false);
@@ -1241,10 +1243,7 @@ internal sealed class MainHeaderBar : Control
     public bool Pinned { get => pinned; set { if (pinned == value) return; pinned = value; Invalidate(); } }
     private static readonly (string Key, string Glyph, string Tip)[] Buttons =
     {
-        ("help", "", "도움말 (F1)"),
-        ("pin", "", "항상 위"),
         ("full", "", "전체 화면"),
-        ("settings", "", "설정 (Ctrl+,)"),
     };
 
     private static Bitmap? logo;
@@ -1273,10 +1272,10 @@ internal sealed class MainHeaderBar : Control
 
     private Rectangle ButtonRect(int i)
     {
-        int size = S(44), gap = S(14);
-        int right = Width - S(32);
-        int x = right - (Buttons.Length - i) * size - (Buttons.Length - 1 - i) * gap;
-        return new Rectangle(x, (Height - size) / 2, size, size);
+        // 서재 오른쪽 위의 전체 화면 버튼과 같은 자리(서재 ↔ 소설 메인을 오가도 그 자리에 그대로 있게)
+        int size = S(40), gap = S(8);
+        int x = Width - S(24) - (Buttons.Length - i) * size - (Buttons.Length - 1 - i) * gap;
+        return new Rectangle(x, S(14), size, size);
     }
 
     private int IndexAt(Point pt)
@@ -1326,7 +1325,7 @@ internal sealed class MainHeaderBar : Control
         TextRenderer.DrawText(g, AppShared.AppDisplayName, tf, new Rectangle(tx, ty, S(320), th), p.Fore, flags);
         TextRenderer.DrawText(g, AppShared.AppSubtitle, sf, new Rectangle(tx + S(2), ty + th - S(4), S(320), sh), p.Dim, flags);
 
-        using var icon = new Font(MainForm.IconFontName(), 14f);
+        using var icon = new Font(MainForm.IconFontName(), 13f);
         for (int i = 0; i < Buttons.Length; i++)
         {
             var r = ButtonRect(i);

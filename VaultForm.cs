@@ -172,6 +172,7 @@ internal sealed class VaultForm : Form
         home.ChangeVaultRequested += () => AppShared.PickAndOpenVault(this);
         home.SettingsRequested += () => AppShared.ShowSettings(this);
         home.HelpRequested += ShowHelp;
+        home.FullScreenRequested += ToggleFullScreenPinned;
 
         Controls.Add(workspace);
         Controls.Add(home);
@@ -271,8 +272,31 @@ internal sealed class VaultForm : Form
     }
 
     /// <summary>창 전체 화면(테두리 없이 화면 가득). 문서 안의 F11 몰입 모드와는 따로.</summary>
+    // 서재의 전체 화면 버튼: 전체 화면이 되면서 [항상 위]도 같이 켠다. 나갈 때는 켜기 전 상태로 되돌린다.
+    private bool pinnedByFull;
+    private bool topBeforeFull;
+
+    private void ToggleFullScreenPinned()
+    {
+        if (!fullScreen)
+        {
+            topBeforeFull = TopMost;
+            pinnedByFull = true;
+            ToggleFullScreen();
+            TopMost = true;
+            workspace.SetPinned(true);
+        }
+        else ToggleFullScreen();
+    }
+
     private void ToggleFullScreen()
     {
+        if (fullScreen && pinnedByFull) // 전체 화면과 함께 건 고정은 나올 때 함께 푼다(어디서 나가든)
+        {
+            pinnedByFull = false;
+            TopMost = topBeforeFull;
+            workspace.SetPinned(topBeforeFull);
+        }
         if (!fullScreen)
         {
             savedBorder = FormBorderStyle; savedState = WindowState;
@@ -281,6 +305,7 @@ internal sealed class VaultForm : Form
         else { FormBorderStyle = savedBorder; WindowState = savedState; }
         fullScreen = !fullScreen;
         workspace.SetFullScreenIcon(fullScreen); // 머리줄의 전체 화면 아이콘을 "나가기" 모양으로
+        home.SetFullScreenIcon(fullScreen);
         chromeOn = !fullScreen;
         titleBar.Visible = chromeOn; // 창 전체 화면에서는 직접 그린 제목줄도 숨긴다
         RecreateHandleFrame();

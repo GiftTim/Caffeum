@@ -50,6 +50,8 @@ internal static class Updater
         busy = true;
         try
         {
+            var go = MessageBox.Show(owner, $"현재 버전은 v{Format(Current)}입니다.\n\n업데이트를 확인하시겠습니까?", "업데이트 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (go != DialogResult.Yes) return;
             if (RepoSlug.Length == 0)
             {
                 MessageBox.Show(owner, "업데이트를 받아 올 주소(GitHub 저장소)가 아직 정해지지 않았어요.", "업데이트 확인", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -104,10 +106,10 @@ internal static class Updater
         {
             Text = "업데이트 내려받는 중", FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent,
             MaximizeBox = false, MinimizeBox = false, ShowInTaskbar = false, ControlBox = false, AutoScaleMode = AutoScaleMode.Dpi,
-            AutoScaleDimensions = new SizeF(96, 96), ClientSize = new Size(360, 84), Font = new Font(NovelStore.UiFontFamily, 9.5f),
+            AutoScaleDimensions = new SizeF(96, 96), ClientSize = new Size(440, 112), Font = new Font(NovelStore.UiFontFamily, 9.5f),
         };
-        var label = new Label { Left = 16, Top = 12, Width = 328, Height = 22, Text = $"v{Format(rel.Version)} 내려받는 중…" };
-        var bar = new ProgressBar { Left = 16, Top = 42, Width = 328, Height = 20, Maximum = 1000 };
+        var label = new Label { Left = 20, Top = 16, Width = 400, Height = 30, AutoSize = false, TextAlign = ContentAlignment.MiddleLeft, Text = $"v{Format(rel.Version)} 내려받는 중…" };
+        var bar = new ProgressBar { Left = 20, Top = 58, Width = 400, Height = 22, Maximum = 1000 };
         dlg.Controls.Add(label);
         dlg.Controls.Add(bar);
         dlg.Show(owner as Form);
@@ -126,7 +128,7 @@ internal static class Updater
                 {
                     await dst.WriteAsync(buf.AsMemory(0, n));
                     done += n;
-                    if (total > 0) { bar.Value = (int)Math.Min(1000, done * 1000 / total); label.Text = $"v{Format(rel.Version)} 내려받는 중… {done / 1048576.0:0.0} / {total / 1048576.0:0.0} MB"; }
+                    if (total > 0) { bar.Value = (int)Math.Min(1000, done * 1000 / total); label.Text = $"v{Format(rel.Version)} 내려받는 중…  {done / 1048576.0:0.0} / {total / 1048576.0:0.0} MB"; }
                 }
             }
             if (new FileInfo(path).Length < 1_000_000) throw new IOException("내려받은 파일이 너무 작아요.");
