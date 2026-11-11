@@ -42,7 +42,11 @@ internal sealed class PomoSettings
     public List<PomoTodo> Todos { get; set; } = new();
     public int CurrentMode { get; set; }
     [JsonIgnore] public bool WidgetShown { get; set; } // 저장하지 않는다: 프로그램을 켜거나 에피소드에 들어갈 때 자동으로 뜨지 않고, 사이드바 아이콘으로만 켠다
-    public bool Mini { get; set; } public bool Locked { get; set; }
+    public bool Mini { get; set; }
+    /// <summary>최소화했을 때의 모양: "circle"(작은 동그라미) · "bar"(긴 막대).</summary>
+    public string MiniStyle { get; set; } = "circle";
+    /// <summary>막대 모양에서 막대 없이 남은 시각만 보이는 작은 상태.</summary>
+    public bool BarCompact { get; set; } public bool Locked { get; set; }
     public int PosX { get; set; } = -1;
     public int PosY { get; set; } = -1;
 
@@ -135,6 +139,7 @@ internal static class Pomodoro
             if (t.PlayMode != "loop") t.PlayMode = "shuffle";
         }
         if (s.OverlayDrainDirection != "left") s.OverlayDrainDirection = "right";
+        if (s.MiniStyle != "bar") s.MiniStyle = "circle";
         s.Volume = Math.Clamp(double.IsNaN(s.Volume) ? 1 : s.Volume, 0, 1);
         s.CurrentMode = Math.Clamp(s.CurrentMode, 0, s.Timers.Count - 1);
         return s;

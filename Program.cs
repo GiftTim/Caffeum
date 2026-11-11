@@ -25,11 +25,52 @@ static class Program
         }
 
         ApplicationConfiguration.Initialize();
+        if (Environment.GetEnvironmentVariable("CAFFEUM_SHOT") is { Length: > 0 } shotDir) { ShotTest(shotDir); return; } // 개발용: 화면을 그려서 그림 파일로 저장하고 끝낸다
         string? initialPath = args.Length > 0 ? args[0] : null;
         var context = AppShared.Start(initialPath, args.Skip(1).ToArray());
         StartListener();
         Updater.CleanupOldInstallers();
         Application.Run(context);
+    }
+
+    /// <summary>개발용 점검: 스케줄러 화면과 팝업을 실제로 그려서 PNG로 저장한다(CAFFEUM_SHOT=저장 폴더).</summary>
+    private static void ShotTest(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        var pal = LibraryPalette.From(Themes.All[0]);
+        var log = new StringBuilder();
+        void Save(Form f, string name)
+        {
+            f.Show(); Application.DoEvents(); Thread.Sleep(300); Application.DoEvents();
+            using var bmp = new Bitmap(f.Width, f.Height);
+            f.DrawToBitmap(bmp, new Rectangle(Point.Empty, f.Size));
+            bmp.Save(Path.Combine(dir, name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+            log.AppendLine($"{name}: size={f.Size} client={f.ClientSize} dpi={f.DeviceDpi}");
+            f.Close();
+        }
+        Save(new ScheduleEntryDialog(pal, "마감", ScheduleStore.Calendars[0].Id, DateTime.Today, 13 * 60, 14 * 60, "", "", false, editing: true), "event_edit");
+        Save(new ScheduleEntryDialog(pal, "", ScheduleStore.Calendars[0].Id, DateTime.Today, 13 * 60, 14 * 60), "event_new");
+        Save(new ScheduleDefDialog(pal, "마감", Color.FromArgb(0x2B, 0x25, 0x70), ""), "def");
+        var host = new Form { Size = new Size(1500, 820), StartPosition = FormStartPosition.Manual, Location = new Point(40, 40) };
+        var view = new ScheduleView { Dock = DockStyle.Fill };
+        host.Controls.Add(view);
+        view.SetPalette(pal);
+        view.ShowToday();
+        Save(host, "view");
+        // 뽀모도로: 막대 모양 최소화 + 설정 창
+        Pomodoro.Init(); Pomodoro.S.Mini = true; Pomodoro.S.MiniStyle = "bar"; Pomodoro.S.BarCompact = false;
+        var ph = new Form { Size = new Size(760, 160), StartPosition = FormStartPosition.Manual, Location = new Point(60, 60), BackColor = Color.White };
+        var pw = new PomodoroWidget(pal); ph.Controls.Add(pw);
+        ph.Show(); pw.Size = PomodoroWidget.SizeFor(ph.DeviceDpi); pw.Location = new Point(40, 40);
+        Save(ph, "pomo_bar");
+        Pomodoro.S.BarCompact = true;
+        var ph2 = new Form { Size = new Size(560, 160), StartPosition = FormStartPosition.Manual, Location = new Point(60, 260), BackColor = Color.White };
+        var pw2 = new PomodoroWidget(pal); ph2.Controls.Add(pw2);
+        ph2.Show(); pw2.Size = PomodoroWidget.SizeFor(ph2.DeviceDpi); pw2.Location = new Point(40, 40);
+        Save(ph2, "pomo_compact");
+        Pomodoro.S.BarCompact = false;
+        Save(new PomodoroSettingsDialog(pal), "pomo_settings");
+        File.WriteAllText(Path.Combine(dir, "log.txt"), log.ToString());
     }
 
     private static bool SendToRunning(string[] args)

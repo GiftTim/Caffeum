@@ -35,6 +35,7 @@ internal sealed class FullScreenButton : Control
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
+        if (BackColor.A == 255) g.Clear(BackColor); // 불투명한 바탕색을 정해 준 경우(스케줄러 오른쪽 위)
         var p = palette;
         if (p == null) return;
         g.SmoothingMode = SmoothingMode.AntiAlias;
