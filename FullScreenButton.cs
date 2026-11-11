@@ -21,6 +21,7 @@ internal sealed class FullScreenButton : Control
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
         TabStop = false;
+        BackColor = Color.Transparent; // 서재 머리의 그라데이션 바탕이 그대로 비치게(색 다른 네모가 보이지 않게)
         Cursor = Cursors.Hand;
         tip.SetToolTip(this, "전체 화면 (고정됨)");
         AccessibleName = "전체 화면";
@@ -35,7 +36,6 @@ internal sealed class FullScreenButton : Control
     {
         var g = e.Graphics;
         var p = palette;
-        g.Clear(Parent?.BackColor ?? p?.Main ?? SystemColors.Control);
         if (p == null) return;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var r = new Rectangle(0, 0, Width - 1, Height - 1);
@@ -62,8 +62,9 @@ internal sealed class GlyphIconButton : Control
     public GlyphIconButton(string glyph, string tooltip)
     {
         this.glyph = glyph;
-        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
         TabStop = false;
+        BackColor = Color.Transparent;
         Cursor = Cursors.Hand;
         tip.SetToolTip(this, tooltip);
         AccessibleName = tooltip;
@@ -78,7 +79,6 @@ internal sealed class GlyphIconButton : Control
     {
         var g = e.Graphics;
         var p = palette;
-        g.Clear(Parent?.BackColor ?? p?.Main ?? SystemColors.Control);
         if (p == null) return;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var r = new Rectangle(0, 0, Width - 1, Height - 1);

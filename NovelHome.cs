@@ -1,4 +1,4 @@
-using System.Drawing.Drawing2D;
+﻿using System.Drawing.Drawing2D;
 using Microsoft.VisualBasic.FileIO;
 
 namespace CoffeeViewer;
@@ -32,12 +32,24 @@ internal sealed class NovelHome : Panel
     /// <summary>오른쪽 위의 전체 화면 버튼.</summary>
     public event Action? FullScreenRequested;
     private readonly FullScreenButton fullButton = new();
-    public void SetFullScreenIcon(bool on) => fullButton.On = on;
+    public void SetFullScreenIcon(bool on) { fullButton.On = on; schedule.SetFullScreenIcon(on); }
+
+    /// <summary>[스케줄러]를 열고 닫는다(열면 서재 목록 대신 달력이 보인다).</summary>
+    private void ShowSchedule(bool on)
+    {
+        if (schedule.Visible == on) return;
+        libraryItem.Selected = !on;
+        scheduleItem.Selected = on;
+        top.Visible = !on;
+        schedule.Visible = on;
+        if (on) { schedule.ShowToday(); schedule.BringToFront(); }
+    }
 
     // Muvel처럼 왼쪽 옆 막대: 맨 위 로고(접기 버튼) · 메뉴 · 맨 아래 볼트 이름
     private readonly Panel nav;
     private readonly SidebarBrand brand;
-    private readonly SidebarNavItem libraryItem, vaultItem, settingsItem, helpItem, updateItem;
+    private readonly SidebarNavItem libraryItem, scheduleItem, vaultItem, settingsItem, helpItem, updateItem;
+    private readonly ScheduleView schedule = new() { Visible = false, Dock = DockStyle.Fill };
     private readonly Label vaultLabel;
     private readonly Panel main;
     private bool navCollapsed;
@@ -83,11 +95,15 @@ internal sealed class NovelHome : Panel
         main.Controls.Add(flow);
         main.Controls.Add(emptyLabel);
         main.Controls.Add(top);
+        main.Controls.Add(schedule);
+        schedule.FullScreenRequested += () => FullScreenRequested?.Invoke();
 
         brand = new SidebarBrand { ShowToggle = false }; // 사이드바는 접지 않는다
         brand.BrandClicked += () => { searchText.Text = ""; Reload(); };
         libraryItem = new SidebarNavItem("", "내 서재") { Selected = true };
-        libraryItem.Click += (_, _) => { searchText.Text = ""; Reload(); };
+        libraryItem.Click += (_, _) => { ShowSchedule(false); searchText.Text = ""; Reload(); };
+        scheduleItem = new SidebarNavItem("\uE787", "스케줄러");
+        scheduleItem.Click += (_, _) => ShowSchedule(true);
         vaultItem = new SidebarNavItem("", "볼트 바꾸기");
         vaultItem.Click += (_, _) => ChangeVaultRequested?.Invoke();
         settingsItem = new SidebarNavItem("", "설정");
@@ -98,7 +114,7 @@ internal sealed class NovelHome : Panel
         updateItem.Click += (_, _) => _ = Updater.CheckAsync(FindForm());
         vaultLabel = new Label { AutoSize = false, AutoEllipsis = true, UseMnemonic = false, Font = new Font(ff, 8.5f), Text = vaultPath };
         nav = new Panel();
-        nav.Controls.AddRange(new Control[] { brand, libraryItem, vaultItem, settingsItem, helpItem, updateItem, vaultLabel });
+        nav.Controls.AddRange(new Control[] { brand, libraryItem, scheduleItem, vaultItem, settingsItem, helpItem, updateItem, vaultLabel });
         nav.Layout += (_, _) => LayoutNav();
         nav.Paint += (_, e) => { if (palette != null) { using var pen = new Pen(palette.Line); e.Graphics.DrawLine(pen, nav.Width - 1, 0, nav.Width - 1, nav.Height); } };
         Controls.Add(main);
@@ -112,7 +128,7 @@ internal sealed class NovelHome : Panel
         navCollapsed = c;
         nav.Width = S(c ? 64 : 236);
         brand.Collapsed = c;
-        foreach (var i in new[] { libraryItem, vaultItem, settingsItem, helpItem, updateItem }) i.Collapsed = c;
+        foreach (var i in new[] { libraryItem, scheduleItem, vaultItem, settingsItem, helpItem, updateItem }) i.Collapsed = c;
         vaultLabel.Visible = !c;
         nav.PerformLayout();
         nav.Invalidate();
@@ -123,7 +139,7 @@ internal sealed class NovelHome : Panel
         int w = nav.ClientSize.Width - 1;
         brand.SetBounds(0, S(10), w, S(navCollapsed ? 100 : 88));
         int y = brand.Bottom + S(14), h = S(38);
-        foreach (var i in new[] { libraryItem, vaultItem }) { i.SetBounds(0, y, w, h); y += h + S(2); }
+        foreach (var i in new[] { libraryItem, scheduleItem, vaultItem }) { i.SetBounds(0, y, w, h); y += h + S(2); }
         // 맨 아래: 볼트 경로 위에 [도움말] 그 밑에 [설정] 순서로 붙인다
         int labelTop = nav.ClientSize.Height - S(44);
         settingsItem.SetBounds(0, labelTop - S(10) - h, w, h);
@@ -207,7 +223,8 @@ internal sealed class NovelHome : Panel
         nav.BackColor = vaultLabel.BackColor = p.Side;
         vaultLabel.ForeColor = p.Dim;
         brand.SetPalette(p);
-        foreach (var i in new[] { libraryItem, vaultItem, settingsItem, helpItem, updateItem }) i.SetPalette(p);
+        foreach (var i in new[] { libraryItem, scheduleItem, vaultItem, settingsItem, helpItem, updateItem }) i.SetPalette(p);
+        schedule.SetPalette(p);
         top.SetPalette(p);
         fullButton.SetPalette(p);
         titleLabel.BackColor = countLabel.BackColor = subLabel.BackColor = Color.Transparent; // 창 테마 적용이 칠해 둔 바탕을 걷어 낸다(그라데이션이 비치게)
