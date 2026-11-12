@@ -250,7 +250,7 @@ internal sealed class ScheduleView : Panel
         private Rectangle prevRect, nextRect, todayRect;
         private readonly Rectangle[] viewRects = new Rectangle[3]; // 월 · 주 · 일 보기 전환 아이콘
         private int titleRight;
-        private int curView = 1;                                    // 0 월 · 1 주 · 2 일 (지금은 주만)
+        private int curView = 1;                                    // 0 월 · 1 주 · 2 일 (일은 아직)
         private readonly ToolTip tip = new();
         private int hot = -1; // 0 이전 · 1 오늘 · 2 다음
         private readonly List<(Rectangle R, ScheduleEntry E)> blocks = new();
@@ -346,8 +346,9 @@ internal sealed class ScheduleView : Panel
             if (dragging) { dragB = dragAll ? -1 : MinuteAt(e.Y); Invalidate(); return; }
             int h = prevRect.Contains(e.Location) ? 0 : todayRect.Contains(e.Location) ? 1 : nextRect.Contains(e.Location) ? 2 : viewRects[0].Contains(e.Location) ? 3 : viewRects[1].Contains(e.Location) ? 4 : viewRects[2].Contains(e.Location) ? 5 : -1;
             bool onBlock = blocks.Any(b => b.R.Contains(e.Location));
-            Cursor = h >= 0 || onBlock ? Cursors.Hand : Cursors.Default;
-            if (h != hot) { hot = h; tip.SetToolTip(this, h == 3 ? "월 (준비 중)" : h == 4 ? "주" : h == 5 ? "일 (준비 중)" : null); Invalidate(); }
+            bool onCell = curView == 0 && ColAt(e.X) >= 0 && e.Y >= MonthGeo().Top;
+            Cursor = h >= 0 || onBlock || onCell ? Cursors.Hand : Cursors.Default;
+            if (h != hot) { hot = h; tip.SetToolTip(this, h == 3 ? "월" : h == 4 ? "주" : h == 5 ? "일 (준비 중)" : null); Invalidate(); }
         }
 
         protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); hot = -1; Invalidate(); }
@@ -359,6 +360,7 @@ internal sealed class ScheduleView : Panel
             LayoutButtons();
             if (prevRect.Contains(e.Location) || todayRect.Contains(e.Location) || nextRect.Contains(e.Location) || viewRects.Any(v => v.Contains(e.Location))) return;
             if (blocks.Any(b => b.R.Contains(e.Location))) return;
+            if (curView == 0) return; // 월 보기는 끌기 없이 놓을 때(MouseUp) 처리
             int col = ColAt(e.X);
             if (col < 0) return;
             if (e.Y >= TitleH + DayHeadH && e.Y < GridTop) { dragging = true; dragAll = true; dragCol = col; dragA = dragB = -1; Capture = true; return; } // 종일 줄
@@ -398,9 +400,12 @@ internal sealed class ScheduleView : Panel
                     return;
                 }
             LayoutButtons();
-            if (prevRect.Contains(e.Location)) { GoTo(weekStart.AddDays(-7 + (int)selectedDay.DayOfWeek)); DateSelected?.Invoke(selectedDay); }
-            else if (nextRect.Contains(e.Location)) { GoTo(weekStart.AddDays(7 + (int)selectedDay.DayOfWeek)); DateSelected?.Invoke(selectedDay); }
+            if (viewRects[0].Contains(e.Location)) SetView(0);
+            else if (viewRects[1].Contains(e.Location)) SetView(1);
+            else if (prevRect.Contains(e.Location)) { if (curView == 0) StepMonth(-1); else { GoTo(weekStart.AddDays(-7 + (int)selectedDay.DayOfWeek)); DateSelected?.Invoke(selectedDay); } }
+            else if (nextRect.Contains(e.Location)) { if (curView == 0) StepMonth(1); else { GoTo(weekStart.AddDays(7 + (int)selectedDay.DayOfWeek)); DateSelected?.Invoke(selectedDay); } }
             else if (todayRect.Contains(e.Location)) { GoTo(DateTime.Today); DateSelected?.Invoke(DateTime.Today); ScrollToNow(); }
+            else if (curView == 0) MonthClick(e.Location);
         }
 
         /// <summary>일정(블록 · 칩)을 두 번 누르면 보기 · 수정 창이 뜬다.</summary>
@@ -415,6 +420,7 @@ internal sealed class ScheduleView : Panel
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
+            if (curView == 0) { StepMonth(e.Delta > 0 ? -1 : 1); return; } // 월 보기: 휠로 달 넘기기
             scrollY = Math.Clamp(scrollY - e.Delta / 120 * HourH, 0, MaxScroll);
             Invalidate();
         }
@@ -434,6 +440,7 @@ internal sealed class ScheduleView : Panel
             blocks.Clear();
             scrollY = Math.Clamp(scrollY, 0, MaxScroll);
             string ff = NovelStore.UiFontFamily;
+            if (curView == 0) { PaintMonth(g, pal, ff); return; }
             const TextFormatFlags mid = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
             const TextFormatFlags left = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;
             Color red = Color.FromArgb(0xE5, 0x48, 0x4D);
@@ -528,19 +535,8 @@ internal sealed class ScheduleView : Panel
             using (var hb = new SolidBrush(pal.Main)) g.FillRectangle(hb, 0, 0, Width, GridTop);
 
 
-            // 제목: "11월 2026" (고른 날의 달) — 오른쪽, 이전/오늘/다음 버튼 바로 왼쪽
-            using (var mf = new Font(ff, 26f, FontStyle.Bold))
-            using (var yf = new Font(ff, 26f, FontStyle.Regular))
-            {
-                string mt = $" {selectedDay.Month}월", yt = $"{selectedDay.Year}";
-                var msz = TextRenderer.MeasureText(g, mt, mf, Size.Empty, TextFormatFlags.NoPadding);
-                var ysz = TextRenderer.MeasureText(g, yt, yf, Size.Empty, TextFormatFlags.NoPadding);
-                int tx = titleRight - (msz.Width + ysz.Width), ty = S(47) - msz.Height / 2;
-                TextRenderer.DrawText(g, yt, yf, new Point(tx, ty), Themes.Blend(pal.Main, pal.Fore, 0.55f), TextFormatFlags.NoPadding);
-                TextRenderer.DrawText(g, mt, mf, new Point(tx + ysz.Width, ty), pal.Fore, TextFormatFlags.NoPadding);
-            }            DrawViewSwitch(g, pal);
-            DrawChevron(g, prevRect, true, hot == 0 ? pal.Fore : Themes.Blend(pal.Main, pal.Fore, 0.85f));
-            DrawChevron(g, nextRect, false, hot == 2 ? pal.Fore : Themes.Blend(pal.Main, pal.Fore, 0.85f));            using (var bf = new Font(ff, 10f))
+            DrawHeader(g, pal, ff);
+            using (var bf = new Font(ff, 10f))
             using (var icon = new Font(MainForm.IconFontName(), 10f))
             {
                 void Btn(Rectangle r, int idx, string text, bool isIcon)
@@ -593,7 +589,124 @@ internal sealed class ScheduleView : Panel
 
         }
 
-        /// <summary>왼쪽의 보기 전환: 월 · 주 · 일 아이콘(지금 보기는 눌린 모양). 월 · 일은 나중에 채운다.</summary>
+        /// <summary>맨 위 머리: 제목("2026 11월", 고른 날의 달) · 보기 전환 아이콘 · 이전/다음 꺾쇠. 주 · 월 보기가 같이 쓴다.</summary>
+        private void DrawHeader(Graphics g, LibraryPalette pal, string ff)
+        {
+            using (var mf = new Font(ff, 26f, FontStyle.Bold))
+            using (var yf = new Font(ff, 26f, FontStyle.Regular))
+            {
+                string mt = $" {selectedDay.Month}월", yt = $"{selectedDay.Year}";
+                var msz = TextRenderer.MeasureText(g, mt, mf, Size.Empty, TextFormatFlags.NoPadding);
+                var ysz = TextRenderer.MeasureText(g, yt, yf, Size.Empty, TextFormatFlags.NoPadding);
+                int tx = titleRight - (msz.Width + ysz.Width), ty = S(47) - msz.Height / 2;
+                TextRenderer.DrawText(g, yt, yf, new Point(tx, ty), Themes.Blend(pal.Main, pal.Fore, 0.55f), TextFormatFlags.NoPadding);
+                TextRenderer.DrawText(g, mt, mf, new Point(tx + ysz.Width, ty), pal.Fore, TextFormatFlags.NoPadding);
+            }
+            DrawViewSwitch(g, pal);
+            DrawChevron(g, prevRect, true, hot == 0 ? pal.Fore : Themes.Blend(pal.Main, pal.Fore, 0.85f));
+            DrawChevron(g, nextRect, false, hot == 2 ? pal.Fore : Themes.Blend(pal.Main, pal.Fore, 0.85f));
+        }
+
+        // ───────── 월 보기 ─────────
+
+        private int MonthHeadH => S(46); // 제목 밑 요일 줄까지
+
+        /// <summary>월 보기 격자: 위 · 한 줄 높이 · 줄 수 · 첫 칸(그 달 1일이 든 주의 일요일).</summary>
+        private (int Top, int RowH, int Rows, DateTime First) MonthGeo()
+        {
+            var m1 = new DateTime(selectedDay.Year, selectedDay.Month, 1);
+            int rows = ((int)m1.DayOfWeek + DateTime.DaysInMonth(m1.Year, m1.Month) + 6) / 7;
+            int top = TitleH + MonthHeadH;
+            int rowH = Math.Max(S(64), (Height - top - S(8)) / rows);
+            return (top, rowH, rows, m1.AddDays(-(int)m1.DayOfWeek));
+        }
+
+        /// <summary>월 단위로 이동(고른 날은 같은 일, 없으면 그 달 마지막 날).</summary>
+        private void StepMonth(int n) { GoTo(selectedDay.AddMonths(n)); DateSelected?.Invoke(selectedDay); }
+
+        private void SetView(int k) { if (k == curView) return; curView = k; hot = -1; Invalidate(); }
+
+        /// <summary>날짜 칸을 눌렀다: 숫자 줄이면 그 날을 고르고, 빈 곳이면 그 날 종일 일정을 만든다(붓이 있으면 바로 칠한다).</summary>
+        private void MonthClick(Point pt)
+        {
+            var (top, rowH, rows, first) = MonthGeo();
+            int col = ColAt(pt.X);
+            if (col < 0 || pt.Y < top) return;
+            int row = (pt.Y - top) / rowH;
+            if (row >= rows) return;
+            var day = first.AddDays(row * 7 + col);
+            if (pt.Y < top + row * rowH + S(32)) { selectedDay = day; DateSelected?.Invoke(day); Invalidate(); return; }
+            if (Brush != null) PaintRequested?.Invoke(day, -1, -1);
+            else CreateRequested?.Invoke(day, -1, -1, PointToScreen(pt));
+        }
+
+        private void PaintMonth(Graphics g, LibraryPalette pal, string ff)
+        {
+            const TextFormatFlags mid = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
+            const TextFormatFlags left = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;
+            Color red = Color.FromArgb(0xE5, 0x48, 0x4D);
+            Color lineCol = Themes.Blend(pal.Main, pal.Fore, 0.10f);
+            Color dim = Themes.Blend(pal.Main, pal.Fore, 0.5f);
+            var vis = VisibleIds();
+            int colW = ColW, gutter = Gutter;
+            var (top, rowH, rows, first) = MonthGeo();
+            int right = gutter + 7 * colW, bottom = top + rows * rowH;
+
+            // 요일 줄
+            string[] days = { "일", "월", "화", "수", "목", "금", "토" };
+            using (var wf = new Font(ff, 9f))
+                for (int c = 0; c < 7; c++)
+                {
+                    Color wc = c == 0 ? red : c == 6 ? Color.FromArgb(0x4A, 0x7F, 0xD0) : Themes.Blend(pal.Main, pal.Fore, 0.6f);
+                    TextRenderer.DrawText(g, days[c], wf, new Rectangle(gutter + c * colW, TitleH + S(14), colW, S(24)), wc, mid);
+                }
+
+            // 격자 선 + 오늘 칸 옅게
+            using (var lp = new Pen(lineCol))
+            {
+                for (int r = 0; r <= rows; r++) g.DrawLine(lp, gutter, top + r * rowH, right, top + r * rowH);
+                for (int c = 0; c <= 7; c++) g.DrawLine(lp, gutter + c * colW, top, gutter + c * colW, bottom);
+            }
+            for (int i = 0; i < rows * 7; i++)
+                if (first.AddDays(i).Date == DateTime.Today)
+                {
+                    using var tb = new SolidBrush(Color.FromArgb(pal.Dark ? 18 : 14, pal.Accent));
+                    g.FillRectangle(tb, gutter + i % 7 * colW + 1, top + i / 7 * rowH + 1, colW - 1, rowH - 1);
+                }
+
+            using (var nf = new Font(ff, 10f, FontStyle.Bold))
+            using (var itemFont = new Font(ff, 8.5f))
+                for (int i = 0; i < rows * 7; i++)
+                {
+                    var d = first.AddDays(i);
+                    int x = gutter + i % 7 * colW, y = top + i / 7 * rowH;
+                    bool inMonth = d.Month == selectedDay.Month, isToday = d.Date == DateTime.Today;
+                    var circle = new Rectangle(x + S(5), y + S(4), S(24), S(24));
+                    if (isToday) { using var b = new SolidBrush(red); g.FillEllipse(b, circle); }
+                    else if (d.Date == selectedDay.Date) { using var pen = new Pen(pal.Accent, S(2)); g.DrawEllipse(pen, circle); }
+                    Color nc = isToday ? Color.White : !inMonth ? Themes.Blend(pal.Main, pal.Fore, 0.3f) : i % 7 == 0 ? red : i % 7 == 6 ? Color.FromArgb(0x4A, 0x7F, 0xD0) : pal.Fore;
+                    TextRenderer.DrawText(g, d.Day.ToString(), nf, circle, nc, mid);
+
+                    // 그날 일정: 칸에 들어갈 만큼만 칩으로, 넘치면 "+N개 더"
+                    string k = ScheduleStore.Key(d);
+                    var list = ScheduleStore.All.Where(e => e.Date == k && vis.Contains(e.Cal)).OrderBy(e => e.StartMin < 0 ? -1 : e.StartMin).ThenBy(e => e.Text).ToList();
+                    int step = S(21), cap = Math.Max(0, (rowH - S(34)) / step);
+                    int show = list.Count <= cap ? list.Count : Math.Max(0, cap - 1);
+                    for (int j = 0; j < show; j++)
+                    {
+                        var r = new Rectangle(x + S(3), y + S(32) + j * step, colW - S(6), S(19));
+                        DrawChip(g, list[j], r, itemFont, pal, left, false);
+                        blocks.Add((r, list[j]));
+                    }
+                    if (list.Count > show && cap > 0)
+                        TextRenderer.DrawText(g, $"+{list.Count - show}개 더", itemFont, new Rectangle(x + S(8), y + S(32) + show * step, colW - S(12), S(19)), dim,
+                            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+                }
+
+            DrawHeader(g, pal, ff);
+        }
+
+        /// <summary>왼쪽의 보기 전환: 월 · 주 · 일 아이콘(지금 보기는 눌린 모양). 일 보기는 나중에 채운다.</summary>
         private void DrawViewSwitch(Graphics g, LibraryPalette pal)
         {
             var all = Rectangle.Union(Rectangle.Union(viewRects[0], viewRects[1]), viewRects[2]);
