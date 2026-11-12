@@ -513,7 +513,7 @@ internal sealed class ScheduleView : Panel
                 TextRenderer.DrawText(g, $"{TimeText(a)} – {TimeText(b)}", f, Rectangle.Inflate(r, -S(6), 0), pal.Fore, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding);
             }
 
-            // 지금 시각 선: 이번 주에는 한 주 전체(일~토)를 가로질러 이어진다. 오늘 열은 진하게 + 점, 나머지 날은 옅게.
+            // 지금 시각 선: 이번 주에는 한 주 전체(일~토)를 가로질러 이어진다. 오늘 열은 진하게, 나머지 날은 옅게, 왼쪽 끝에 점.
             for (int c = 0; c < 7; c++)
                 if (weekStart.AddDays(c).Date == DateTime.Today)
                 {
@@ -521,7 +521,7 @@ internal sealed class ScheduleView : Panel
                     using (var thin = new Pen(Color.FromArgb(110, red), Math.Max(1f, S(1)))) g.DrawLine(thin, gutter, y, gutter + 7 * colW, y);
                     using var rp = new Pen(red, S(2)); using var rb = new SolidBrush(red);
                     g.DrawLine(rp, gutter + c * colW, y, gutter + (c + 1) * colW, y);
-                    g.FillEllipse(rb, gutter + c * colW - S(4), y - S(4), S(8), S(8));
+                    g.FillEllipse(rb, gutter - S(4), y - S(4), S(8), S(8)); // 점은 한 주 선의 왼쪽 끝(일요일 열 시작)에
                 }            g.Restore(state);
 
             // 시간 줄에서 위로 삐져나온 글자·블록은 머리 영역(제목 · 요일 · 종일 줄)을 바탕으로 덮어서 가린다
