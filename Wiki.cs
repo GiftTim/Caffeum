@@ -212,7 +212,7 @@ internal sealed class WikiCreateDialog : Form
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         Padding = new Padding(18);
 
-        TopMost = true; // 앱 뒤로 숨어 앱이 먹통처럼 보이지 않게 늘 앱 위에 뜬다
+        Shown += (_, _) => { Activate(); BringToFront(); }; // 앱 안에서만 앞으로 온다(다른 프로그램 위로 뜨지는 않는다)
         var root = new TableLayoutPanel { ColumnCount = 2, AutoSize = true, Dock = DockStyle.Fill }; // Dock해야 폼 Padding(여백)이 왼쪽 · 위에도 적용된다
         root.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         root.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));

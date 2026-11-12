@@ -159,7 +159,7 @@ internal sealed class GoalSettingsDialog : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = MinimizeBox = false;
         ShowInTaskbar = false;
-        TopMost = true;
+        Shown += (_, _) => { Activate(); BringToFront(); }; // 앱 안에서만 앞으로 온다(다른 프로그램 위로 뜨지는 않는다)
         StartPosition = FormStartPosition.CenterParent;
         AutoScaleMode = AutoScaleMode.None; // 좌표는 아래에서 직접 곱한다(자동 배율과 겹치면 칸이 어긋난다)
         Font = F(10f);
