@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
@@ -296,6 +296,7 @@ public partial class MainForm : Form
         var selectAllItem = new ToolStripMenuItem("모두 선택", null, (_, _) => mainEditor.SelectAll()) { ShortcutKeyDisplayString = "Ctrl+A" };
         findMenuItem = new ScopedMenuItem("찾기", (_, _) => findBar.Show(), () => Visible) { ShortcutKeys = Keys.Control | Keys.F };
         replaceMenuItem = new ScopedMenuItem("바꾸기", (_, _) => findBar.ShowReplace(), () => Visible) { ShortcutKeys = Keys.Control | Keys.H };
+        editModeMenuItem.Visible = false; // 읽는 글은 고치지 않는다: [수정하기]는 없애고, 그 자리 버튼이 [줄바꿈 · 줄간격] 설정을 연다
         editMenu.DropDownItems.Add(editModeMenuItem);
         editMenu.DropDownItems.Add(new ToolStripSeparator());
         editMenu.DropDownItems.Add(undoItem);
@@ -599,7 +600,8 @@ public partial class MainForm : Form
             await EnsureEpubViewAsync();
             string text = fullText, title = Path.GetFileNameWithoutExtension(path);
             var chs = chapters;
-            var book = await Task.Run(() => TxtWebBook.Build(text, chs, title, path));
+            bool brk = settings.TxtAutoBreak;
+            var book = await Task.Run(() => TxtWebBook.Build(text, chs, title, path, brk));
             if (!txtWeb || currentPath != path) return; // 만드는 사이 다른 파일을 열었거나 수정하기를 켰다
             txtBook = book;
         }

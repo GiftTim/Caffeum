@@ -29,7 +29,7 @@ public sealed class TxtWebBook
     }
 
     /// <summary>text는 줄바꿈이 \r\n으로 정리된 전체 글(ShowLoadedText 참고), chapters는 그 글을 나눈 챕터 목록.</summary>
-    public static TxtWebBook Build(string text, IReadOnlyList<TxtChapter> chapters, string title, string sourcePath)
+    public static TxtWebBook Build(string text, IReadOnlyList<TxtChapter> chapters, string title, string sourcePath, bool autoBreak = false)
     {
         string dir = Path.Combine(Path.GetTempPath(), "CoffeeViewerTxt",
             Path.GetFileNameWithoutExtension(sourcePath) + "_" + Math.Abs(sourcePath.GetHashCode()));
@@ -62,7 +62,7 @@ public sealed class TxtWebBook
         {
             var (name, start, end) = parts[i];
             string file = Path.Combine(dir, $"{i + 1:D4}.html");
-            File.WriteAllText(file, BuildHtml(text, start, end, name), new UTF8Encoding(false));
+            File.WriteAllText(file, BuildHtml(text, start, end, name, autoBreak), new UTF8Encoding(false));
             epubChapters.Add(new EpubChapter(name, file));
             ranges.Add((start, end));
         }
@@ -81,7 +81,38 @@ public sealed class TxtWebBook
         return ans;
     }
 
-    private static string BuildHtml(string text, int start, int end, string name)
+    /// <summary>
+    /// 한 줄(문단) [start, end)을 문장 단위로 나눈다. 문장 끝 = 마침표 · 물음표 · 느낌표 · … 뒤에 닫는 따옴표 · 괄호가 붙을 수 있고, 그 다음이 공백이거나 줄 끝일 때
+    /// (3.14 · a.b 처럼 바로 이어지는 마침표는 끊지 않는다). 공백은 앞 문장 끝에 붙여 둬서 글자 위치가 원본과 1:1로 맞는다.
+    /// </summary>
+    private static List<(int Start, int End)> SplitSentences(string text, int start, int end)
+    {
+        var list = new List<(int, int)>();
+        int segStart = start, i = start;
+        while (i < end)
+        {
+            char c = text[i];
+            if (c is '.' or '!' or '?' or '…' or '。' or '！' or '？')
+            {
+                int j = i + 1;
+                while (j < end && text[j] is '.' or '!' or '?' or '…' or '。' or '！' or '？') j++;                    // 문장 끝 기호 연속(…… · ?!)
+                while (j < end && text[j] is '"' or '\'' or '”' or '’' or '」' or '』' or ')' or '）' or ']' or '〕') j++; // 닫는 따옴표 · 괄호
+                if (j >= end || char.IsWhiteSpace(text[j]))
+                {
+                    while (j < end && char.IsWhiteSpace(text[j])) j++;
+                    if (j > segStart) list.Add((segStart, j));
+                    segStart = j;
+                }
+                i = Math.Max(j, i + 1);
+                continue;
+            }
+            i++;
+        }
+        if (segStart < end) list.Add((segStart, end));
+        if (list.Count == 0) list.Add((start, end));
+        return list;
+    }
+    private static string BuildHtml(string text, int start, int end, string name, bool autoBreak)
     {
         var sb = new StringBuilder((end - start) * 6 / 5 + 4096);
         sb.Append("<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"utf-8\"><title>")
@@ -97,10 +128,19 @@ public sealed class TxtWebBook
             int nl = text.IndexOf('\n', pos, end - pos);
             int lineEnd = nl < 0 ? end : nl;
             int contentEnd = lineEnd > pos && text[lineEnd - 1] == '\r' ? lineEnd - 1 : lineEnd;
-            sb.Append("<p data-o=\"").Append(pos).Append("\">");
-            if (contentEnd > pos) sb.Append(WebUtility.HtmlEncode(text.Substring(pos, contentEnd - pos)));
-            else sb.Append("<br>"); // 빈 줄도 한 줄 높이를 차지하게
-            sb.Append("</p>\n");
+            if (autoBreak && contentEnd > pos)
+            {
+                // 자동 줄바꿈: 한 줄(문단)을 문장 단위로 쪼개 각각 새 줄로. 위치(data-o)는 원본 글자 위치 그대로다.
+                foreach (var (s, e) in SplitSentences(text, pos, contentEnd))
+                    sb.Append("<p data-o=\"").Append(s).Append("\">").Append(WebUtility.HtmlEncode(text.Substring(s, e - s))).Append("</p>\n");
+            }
+            else
+            {
+                sb.Append("<p data-o=\"").Append(pos).Append("\">");
+                if (contentEnd > pos) sb.Append(WebUtility.HtmlEncode(text.Substring(pos, contentEnd - pos)));
+                else sb.Append("<br>"); // 빈 줄도 한 줄 높이를 차지하게
+                sb.Append("</p>\n");
+            }
             pos = nl < 0 ? end : nl + 1;
         }
         sb.Append("</body></html>");

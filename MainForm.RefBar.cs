@@ -30,7 +30,7 @@ public partial class MainForm
         "vmode" => "보기 모드",
         "rmode" => "스크롤 · 페이지 · 페이지 터치",
         "play" => "낭독 · 슬라이드",
-        "edit" => "수정하기",
+        "edit" => "줄바꿈 · 줄간격",
         "pin" => "항상 위",
         "lock" => "잠금 모드 열기/닫기",
         "pip" => "PIP 모드 (작은 창으로 띄우기)",

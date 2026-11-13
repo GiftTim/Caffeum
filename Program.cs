@@ -70,6 +70,14 @@ static class Program
         Save(ph2, "pomo_compact");
         Pomodoro.S.BarCompact = false;
         Save(new PomodoroSettingsDialog(pal), "pomo_settings");
+        Save(new ViewSettingsDialog(Themes.All[0], 170, 0, true, true), "view_settings");
+        // 문장 단위 자동 줄바꿈 시험
+        {
+            string sample = "그는 말했다. “정말이야?” 그녀가 되물었다! 3.14는 원주율이다… 끝이었다.\r\n\r\n다음 문단이다. 두 번째 문장.\r\n";
+            var chs = TxtChapterSplitter.Split(sample, "시험", new TxtSplitOptions());
+            var bk = TxtWebBook.Build(sample, chs, "시험", Path.Combine(dir, "sample.txt"), autoBreak: true);
+            File.WriteAllText(Path.Combine(dir, "autobreak.html"), File.ReadAllText(bk.Book.Chapters[0].FilePath));
+        }
         File.WriteAllText(Path.Combine(dir, "log.txt"), log.ToString());
     }
 

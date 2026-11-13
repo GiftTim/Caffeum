@@ -51,12 +51,12 @@ public partial class MainForm
         var library = IconItem(GlyphLibrary, "볼트 열기 (Ctrl+L)", ShowLibrary);
         var open = IconItem(GlyphOpen, "파일 열기 (Ctrl+O)", OpenFileDialog);
         // ✎ 수정 — ☰ > 편집 > 수정하기와 같은 버튼(txt · epub은 수정 모드, 한글 문서는 한컴 한글로). 메뉴 항목의 글자 · 쓸 수 있는지를 그대로 따라간다.
-        var edit = IconItem("", "수정하기", () => editModeMenuItem.PerformClick());
+        var edit = IconItem("\uE8D2", "줄바꿈 · 줄간격 — 자동 줄바꿈과 줄 간격을 정해요", OpenViewSettings);
         void SyncEdit()
         {
-            edit.ToolTipText = editModeMenuItem.Text;
+
             edit.Enabled = editModeMenuItem.Enabled;
-            edit.Checked = editModeMenuItem.Text == "읽기 전용으로"; // 고치는 중이면 눌린 모양
+
         }
         editModeMenuItem.TextChanged += (_, _) => SyncEdit();
         editModeMenuItem.EnabledChanged += (_, _) => SyncEdit();

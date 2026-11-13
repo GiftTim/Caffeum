@@ -59,6 +59,8 @@ public sealed class AppSettings
     public int LineHeight { get; set; } = 170;
     /// <summary>txt 문단(줄) 사이 추가 간격(px). 빈 줄로 문단을 나누지 않은 글을 읽기 편하게.</summary>
     public int ParagraphSpacing { get; set; } = 0;
+    /// <summary>읽는 txt를 문장이 끝날 때마다 줄을 바꿔서 보여줄지(글 파일은 그대로).</summary>
+    public bool TxtAutoBreak { get; set; }
     /// <summary>편집 용지의 새 문서 기본값(null = 용지 없이 창 폭에 맞춤).</summary>
     public PaperSetup? Paper { get; set; }
     /// <summary>탭 밑 서식창(편집 용지 · 글꼴 · 크기 · 줄 간격 · 정렬 …)을 글(txt · epub)에서 보일지.</summary>

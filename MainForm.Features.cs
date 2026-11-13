@@ -365,6 +365,10 @@ public partial class MainForm
             case "imagereading":
                 if (imageMode) SetReadingMode(settings.ImagePageTouch ? ReadingMode.PageTouch : ReadingMode.Page); // 보고 있는 만화에도 바로
                 break;
+            case "txtbreak":
+                // 문장 단위 줄바꿈을 켜거나 껐다: 열려 있는 txt 웹 화면을 그 자리에서 다시 만든다.
+                if (shownKind == ContentKind.Txt && txtWeb && !string.IsNullOrEmpty(currentPath)) ShowTxtWeb(txtWebTopOffset);
+                break;
             case "txtsplit":
                 // 열려 있는 txt는 챕터 목록만 다시 나눈다(본문과 읽던 위치는 그대로). 수정 중이거나 zip에서 꺼낸 글은 다시 열 때 적용된다.
                 if (shownKind == ContentKind.Txt && !txtFromZip && mainEditor.ReadOnly && fullText.Length > 0)
