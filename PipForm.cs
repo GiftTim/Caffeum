@@ -7,6 +7,9 @@ namespace CoffeeViewer;
 internal sealed class PipForm : Form
 {
     private readonly MainForm doc;
+    /// <summary>소유 창이어도 작업표시줄에 따로 버튼이 뜨게 한다.</summary>
+    protected override CreateParams CreateParams { get { var cp = base.CreateParams; cp.ExStyle |= 0x00040000; /* WS_EX_APPWINDOW */ return cp; } }
+
     public PipForm(string path)
     {
         Text = Path.GetFileNameWithoutExtension(path) + " — PIP";

@@ -71,6 +71,19 @@ static class Program
         Pomodoro.S.BarCompact = false;
         Save(new PomodoroSettingsDialog(pal), "pomo_settings");
         Save(new ViewSettingsDialog(Themes.All[0], 170, 0, true, true), "view_settings");
+        {   // 압정 아이콘 모양 점검(꺼짐 · 켜짐)
+            using var sheet = new Bitmap(360, 130);
+            using (var sg = Graphics.FromImage(sheet))
+            {
+                sg.Clear(Color.White);
+                using var off = PinIcon.Make(Color.FromArgb(0x2B, 0x26, 0x22), 88, false);
+                using var on = PinIcon.Make(Color.FromArgb(0x2B, 0x26, 0x22), 88, true);
+                using var offS = PinIcon.Make(Color.FromArgb(0x2B, 0x26, 0x22), 22, false);
+                using var onS = PinIcon.Make(Color.FromArgb(0x2B, 0x26, 0x22), 22, true);
+                sg.DrawImage(off, 10, 20); sg.DrawImage(on, 120, 20); sg.DrawImage(offS, 240, 20); sg.DrawImage(onS, 290, 20);
+            }
+            sheet.Save(Path.Combine(dir, "pin_icons.png"), System.Drawing.Imaging.ImageFormat.Png);
+        }
         // 문장 단위 자동 줄바꿈 시험
         {
             string sample = "그는 말했다. “정말이야?” 그녀가 되물었다! 3.14는 원주율이다… 끝이었다.\r\n\r\n다음 문단이다. 두 번째 문장.\r\n";

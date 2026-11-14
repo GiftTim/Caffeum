@@ -2291,6 +2291,7 @@ public partial class MainForm : Form
         shownKind = kind;
 
         if (kind != ContentKind.Txt) { txtWeb = false; directEdit = false; }
+        if (navBar != null) UpdateNavBarLayout(); // 에피소드를 쓰는 화면에서는 네비게이션 바를 숨기고, 읽는 화면으로 바뀌면 다시 보인다
         bool web = kind == ContentKind.Epub || (kind == ContentKind.Txt && txtWeb);
         epubMode = web;
         imageMode = kind == ContentKind.Image;
@@ -2356,7 +2357,7 @@ public partial class MainForm : Form
     {
         pageNavVisible = visible;
         // 탐색 막대가 켜져 있으면 위치 막대 · "약 N% 지점" 표시줄은 탐색 막대가 대신하므로 겹쳐 띄우지 않는다.
-        pageNavPanel.Visible = visible && !settings.NavBarEnabled;
+        pageNavPanel.Visible = visible && !settings.NavBarEnabled && !WritingEpisode;
         prevNavBtn.Visible = false;
         nextNavBtn.Visible = false;
         if (visible)

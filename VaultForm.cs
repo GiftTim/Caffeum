@@ -194,7 +194,7 @@ internal sealed class VaultForm : Form
             else if (e.Control && e.KeyCode == Keys.W && !homeMode) { workspace.CloseFocused(); e.Handled = e.SuppressKeyPress = true; }
             else if (e.Control && e.KeyCode == Keys.Tab && !homeMode) { workspace.CycleFocus(); e.Handled = true; }
             else if (e.Control && e.Shift && e.KeyCode == Keys.F && !homeMode) { workspace.Tree.ShowPage(2); sidebar.FocusSearch(); e.Handled = true; }
-            else if (e.KeyCode == Keys.F1) { ShowHelp(); e.Handled = true; }
+            else if (e.KeyCode == Keys.F1) { ToggleFullScreenByKey(); e.Handled = true; } // F1 = 전체 화면
             else if (e.Control && e.KeyCode == Keys.Oemcomma) { AppShared.ShowSettings(this); e.Handled = true; }
             else if (e.KeyCode == Keys.F5 && homeMode) { home.Reload(); e.Handled = true; }
         };
@@ -275,6 +275,9 @@ internal sealed class VaultForm : Form
     // 서재의 전체 화면 버튼: 전체 화면이 되면서 [항상 위]도 같이 켠다. 나갈 때는 켜기 전 상태로 되돌린다.
     private bool pinnedByFull;
     private bool topBeforeFull;
+
+    /// <summary>F1: 전체 화면을 켜고 끈다. 서재 화면에서는 서재의 전체 화면 아이콘처럼 항상 위도 함께 건다.</summary>
+    public void ToggleFullScreenByKey() { if (homeMode) ToggleFullScreenPinned(); else ToggleFullScreen(); }
 
     private void ToggleFullScreenPinned()
     {

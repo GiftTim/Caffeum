@@ -115,7 +115,7 @@ public partial class MainForm
         menu.Items.Add(ttsMenu);
 
         var helpMenu = new ToolStripMenuItem("도움말");
-        helpMenu.DropDownItems.Add(new ToolStripMenuItem("사용법", null, (_, _) => ShowHelp()) { ShortcutKeyDisplayString = "F1" });
+        helpMenu.DropDownItems.Add(new ToolStripMenuItem("사용법", null, (_, _) => ShowHelp()));
         menu.Items.Add(helpMenu);
     }
 
@@ -832,7 +832,7 @@ public partial class MainForm
             case Keys.F11: ToggleImmersion(); return true;
             case Keys.Escape when edgePrompt.Visible: HideEdgePrompt(); return true; // 끝 · 처음 안내 상자부터 닫는다
             case Keys.Escape when immersive: ToggleImmersion(); return true;
-            case Keys.F1: ShowHelp(); return true;
+            case Keys.F1: if (HostForm is VaultForm vf) vf.ToggleFullScreenByKey(); else ShowHelp(); return true; // F1 = 전체 화면(PIP 같은 작은 창에서는 예전처럼 사용법)
             case Keys.OemCloseBrackets when CanUseBracketKeys(): GoAdjacentFile(forward: true); return true; // ]
             case Keys.OemOpenBrackets when CanUseBracketKeys(): GoAdjacentFile(forward: false); return true; // [
             case Keys.Control | Keys.L: ShowLibrary(); return true;

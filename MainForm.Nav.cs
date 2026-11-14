@@ -57,7 +57,10 @@ public partial class MainForm
         FormClosed += (_, _) => navTimer.Dispose();
     }
 
-    private bool NavBarOn => settings.NavBarEnabled && navHasContent;
+    /// <summary>에피소드(회차)를 쓰는 중인가: 쓰는 화면에는 네비게이션 바가 필요 없어서 숨긴다.</summary>
+    private bool WritingEpisode => embedded && directEdit && shownKind == ContentKind.Txt;
+
+    private bool NavBarOn => settings.NavBarEnabled && navHasContent && !WritingEpisode;
 
     /// <summary>고정 여부 · 켜짐 여부가 바뀌었을 때 막대를 알맞은 자리에 놓는다.</summary>
     private void UpdateNavBarLayout()

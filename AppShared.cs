@@ -101,7 +101,7 @@ internal static class AppShared
         {
             var pip = new PipForm(f);
             Track(pip);
-            pip.Show();
+            pip.Show(vaults.LastOrDefault(v => !v.IsDisposed)); // 열려 있는 Caffeum 창이 있으면 그 앞에(없으면 혼자 뜬다)
         }
     }
 

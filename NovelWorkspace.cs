@@ -1,4 +1,4 @@
-﻿using System.Drawing.Drawing2D;
+using System.Drawing.Drawing2D;
 
 namespace CoffeeViewer;
 
@@ -416,7 +416,7 @@ internal sealed class NovelWorkspace : Panel
             if (held.Count == 0) CloseDocsUnder(path); // 회차 · 위키는 같은 문서를 두 곳에서 고치지 않게 칸을 닫는다
             var pip = new PipForm(path);
             pip.FormClosed += (_, _) => { foreach (var pane in held) if (!pane.IsDisposed) pane.EndPip(path); };
-            pip.Show(); // 소유 창으로 두면 작업표시줄에 따로 안 뜬다
+            pip.Show(FindForm()); // Caffeum 창이 전체 화면이어도(항상 위여도) PIP는 그 앞에 뜬다(소유 창). 작업표시줄 버튼은 PipForm이 따로 만든다
         });
     }
 

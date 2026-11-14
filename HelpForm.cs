@@ -68,7 +68,7 @@ public sealed class HelpForm : Form
 
 ■ 그 밖에
   · 본문에서 글자를 선택하고 우클릭 > 웹 검색(네이버 / 구글)
-  · 도움말: F1";
+  · 전체 화면: F1";
 
     public HelpForm()
     {
